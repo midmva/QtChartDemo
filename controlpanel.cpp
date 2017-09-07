@@ -1,17 +1,28 @@
 #include "controlpanel.h"
 #include "ui_controlpanel.h"
 
-ControlPanel::ControlPanel(QWidget *parent) :
+#include <QColorDialog>
+
+ControlPanel::ControlPanel(QWidget *parent,QList<ChannelSettings> *list) :
     QWidget(parent),
     speed_ms(40),
     ui(new Ui::ControlPanel)
 
 {
     ui->setupUi(this);
+    ui->label->setText(QString("Time/screen, %1s").arg(ui->horizontalSlider->value()*0.1));
     setFixedWidth(200);
     setLayout(ui->verticalLayout);
     ui->pushButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
-    ui->timeout_label->setText(QString("Timeout: %1ms").arg(speed_ms));
+    if (list!=nullptr)
+        for (int i = 0;i<8;i++){
+            ControlChannel *control = new ControlChannel(this,list->at(i).enable,
+                                                         list->at(i).color,
+                                                         list->at(i).name);
+            connect(control, &ControlChannel::signalChangeChannelSettings,this, &ControlPanel::signalChangeSettings);
+            ui->verticalLayout->addWidget(control);
+        }
+    ui->verticalLayout->addStretch();
 }
 
 ControlPanel::~ControlPanel()
@@ -19,44 +30,26 @@ ControlPanel::~ControlPanel()
     delete ui;
 }
 
+void ControlPanel::slotUpdateLabel(int number)
+{
+}
+
 void ControlPanel::on_pushButton_clicked()
 {
     if (ui->pushButton->text().contains("Start")){
         ui->pushButton->setText("Stop");
         ui->pushButton->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
-        emit start();
+        emit signalStart();
     }
     else{
         ui->pushButton->setText("Start");
         ui->pushButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
-        emit stop();
+        emit signalStop();
     }
 }
 
-void ControlPanel::on_pushButton_2_clicked()
+void ControlPanel::on_horizontalSlider_valueChanged(int value)
 {
-    speed_ms-=10;
-    ui->timeout_label->setText(QString("Timeout: %1ms").arg(speed_ms));
-    emit changeSpeed(speed_ms);
-}
-
-void ControlPanel::on_pushButton_3_clicked()
-{
-    speed_ms+=10;
-    ui->timeout_label->setText(QString("Timeout: %1ms").arg(speed_ms));
-    emit changeSpeed(speed_ms);
-}
-
-void ControlPanel::on_pushButton_5_clicked()
-{
-    speed_ms+=1;
-    ui->timeout_label->setText(QString("Timeout: %1ms").arg(speed_ms));
-    emit changeSpeed(speed_ms);
-}
-
-void ControlPanel::on_pushButton_4_clicked()
-{
-    speed_ms-=1;
-    ui->timeout_label->setText(QString("Timeout: %1ms").arg(speed_ms));
-    emit changeSpeed(speed_ms);
+    ui->label->setText(QString("Time/screen, %1s").arg(value*0.1));
+    emit signalChangeSpeed(value);
 }
